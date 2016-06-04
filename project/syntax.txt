@@ -1,0 +1,9 @@
+S-*-id,=,BDS
+S-*-if,TJ,then,(,S,)
+S-*-#
+TJ-*-(,BDS,LOP,BDS,)
+BDS-*-YZ
+BDS-*-(,BDS,MOP,BDS,)
+YZ-*-id
+YZ-*-string
+YZ-*-integer
