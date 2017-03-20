@@ -1,16 +1,31 @@
 # -*- coding:utf-8 -*-
-# Author: 刘坤   最后修改时间：2016-06-04
-# lexical analyse with NFA
-
+# Author: 刘坤
+# 开始时间: 2016-06-04
+# 最后修改时间: 2017-03-17
+# Email: lancelotdev@163.com
+# > lexical analyse with NFA
+# 利用 NFA 进行词法分析，最终生成(词性， 单词)二元元组列表
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 import re
 
+# 构词法分隔符
 grammar_split_char = '-*-'
+# 关键字
 key_words_list = ["if", "then", "else", "elif", "for", "while", "do", "="]
+# 数学表达式
 math_operator = ["+", "-", "*", "/", "%"]
+# 逻辑表达式
 logical_operator = [">", "<", "=="]
+# 分界符
 limiter_list = ['\"', ';', '(', ')']
+# 数字
 number = [str(x) for x in range(10)]
+# a~z A~Z
 letter_list = [chr(i) for i in range(97, 123)]
+# 构造不同类型基本单词的属性词典
 key_words_dict = dict()
 for index, value in enumerate(key_words_list):
     key_words_dict[value] = value # index
@@ -22,6 +37,7 @@ for index, value in enumerate(logical_operator):
     limiter_dict[value] = "LOP" # value # index + len(key_words_dict) + len(operator_dict)
 for index, value in enumerate(limiter_list):
     limiter_dict[value] = value # index + len(key_words_dict) + len(operator_dict)
+# 将各种词典合并
 merge_dict = dict(key_words_dict)
 merge_dict.update(operator_dict)
 merge_dict.update(limiter_dict)
@@ -30,7 +46,7 @@ reserved_table = key_words_list + logical_operator + math_operator + limiter_lis
 reserved_table.append("#")
 
 
-# 对输入的字串进行相应归类到文法中对应的符号
+# 对输入的字串进行相应归类，归类映射到文法中对应的符号
 def vt_symbol(char):
     if char.isdigit():
         return 'd'
@@ -42,20 +58,23 @@ def vt_symbol(char):
         return char
 
 
-# 为每一种别的单词构造一个DFA
-# 文法描述格式   A a B   三元式用空格隔开  分别为current——state  input  next  p为大写
+# 为每一种别的单词构造一个 NFA
+# 文法描述格式三元式用分隔符隔开分别为 current_state  input  next  状态为大写
 class NFA:
     # 首条grammar表示出初态符
     def __init__(self, re_grammar, obj_string="#"):
+        # re_grammar 为构词法描述语句列表
         self.re_grammar = re_grammar
         sp_words = re_grammar[0].split(grammar_split_char)
+        # 提取起始状态
         self.origin_state = sp_words[0]
+        # 当前状态
         self.current_state = self.origin_state
         # 状态转移路径
         self.state_path = []
         self.kind = ""
         self.type = ""
-        # 目标匹配的单词字串
+        # 正在匹配的单词字串
         self.obj_string = obj_string
         self.input_index = 0
         self.is_accept = False
@@ -66,8 +85,13 @@ class NFA:
 
     # 当前输入错误，回溯
     def input_back_trace(self):
-        if self.input_index >= 1:
+        # 可回溯
+        if self.input_index > 1:
             self.input_index -= 1
+            return True
+        # 注定匹配失败
+        if self.input_index == 1:
+            return False
 
     def add_state(self, state):
         self.current_state = state
@@ -85,13 +109,15 @@ class NFA:
     # 获取当前输入符号
     def get_current_input(self):
         self.input_index += 1
+        # if self.input_index > len(self.obj_string):
+        #     return '#'
         return self.obj_string[self.input_index-1]
 
-    # 分析并进行状态转移,选择合适的产生式
+    # 分析并进行状态转移,选择合适的产生式，递归
     def analyse(self, input_string):
-        # 终结符对应
         current_input = self.get_current_input()
         temp_vt = vt_symbol(current_input)
+        # 终结符对应
         if temp_vt == '#':  # accept
             # token_table.append((self.kind, self.type, input_string))
             token_table.append((self.kind, input_string))
@@ -121,7 +147,9 @@ class NFA:
                 return
             self.state_back_trace()
         # 当前可能状态集不符合要求，输入要回溯
-        self.input_back_trace()
+        if not self.input_back_trace():
+            self.is_accept = False;
+            return
 
     def start(self, text_string):
         start_char = text_string[0]
